@@ -30,10 +30,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Meiryo', san
 .element-filter input[type=range] { width: 50px; }
 .element-filter .tol-val { font-size: 10px; color: #999; min-width: 28px; text-align: center; }
 @media (max-width: 600px) {
-  .element-filter input[type=range] { display: none; }
-  .element-filter .tol-val { display: none; }
-  .element-filter { padding: 3px 6px; }
-  .element-filter input[type=number] { width: 45px; font-size: 14px; }
+  .element-filter { padding: 3px 6px; flex-wrap: wrap; }
+  .element-filter input[type=number] { width: 50px; font-size: 14px; }
+  .element-filter input[type=range] { width: 60px; }
   .element-filter label { min-width: 20px; font-size: 12px; }
 }
 .results { padding: 8px; }
