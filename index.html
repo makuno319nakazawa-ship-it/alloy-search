@@ -25,8 +25,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Meiryo', san
 .search-mode button.active { background: #1B96A3; color: white; }
 .element-filters { padding: 8px 0; display: flex; flex-wrap: wrap; gap: 4px; }
 .element-filter { display: flex; align-items: center; gap: 4px; background: #f0f0f0; border-radius: 6px; padding: 4px 8px; font-size: 12px; }
-.element-filter input { width: 50px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; text-align: center; }
+.element-filter input[type=number] { width: 50px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; text-align: center; }
 .element-filter label { font-weight: bold; color: #1B96A3; min-width: 24px; }
+.element-filter input[type=range] { width: 50px; }
+.element-filter .tol-val { font-size: 10px; color: #999; min-width: 28px; text-align: center; }
 .results { padding: 8px; }
 .result-count { padding: 8px 12px; font-size: 13px; color: #666; }
 .alloy-card { background: white; border-radius: 10px; margin-bottom: 8px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
@@ -69,6 +71,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Meiryo', san
 
   <div id="reverseArea" style="display:none;">
     <p style="font-size:12px; color:#666; margin: 4px 0;">元素の含有率（%）を入力すると該当する合金を検索します</p>
+    <div style="background:#fff3cd; border-radius:8px; padding:8px 12px; margin:6px 0; font-size:13px;">
+      ⚙️ <strong>許容幅：±<span id="toleranceDisplay">2</span>%</strong>（入力値の前後を含めて検索）
+      <input type="range" id="toleranceSlider" min="0" max="10" step="0.5" value="2" style="width:100%; margin-top:4px;" oninput="document.getElementById('toleranceDisplay').textContent=this.value; syncTolerance(this.value); doSearch()">
+      <div style="display:flex; justify-content:space-between; font-size:10px; color:#999;"><span>±0%（完全一致）</span><span>±10%（広め）</span></div>
+    </div>
     <div class="element-filters" id="elementFilters"></div>
   </div>
 </div>
@@ -89,10 +96,13 @@ async function init() {
 
 function buildElementFilters() {
   const el = document.getElementById('elementFilters');
+  const defaultTol = document.getElementById('toleranceSlider')?.value || 2;
   el.innerHTML = MAIN_ELEMENTS.map(e => `
     <div class="element-filter">
       <label>${e}</label>
       <input type="number" step="0.01" id="ef_${e}" placeholder="%" oninput="doSearch()">
+      <input type="range" min="0" max="10" step="0.5" value="${defaultTol}" id="tol_${e}" oninput="document.getElementById('tolv_${e}').textContent='±'+this.value; doSearch()">
+      <span class="tol-val" id="tolv_${e}">±${defaultTol}</span>
     </div>
   `).join('');
 }
@@ -137,12 +147,13 @@ function doSearch() {
     if (filters.length > 0) {
       results = results.filter(a => {
         return filters.every(f => {
+          const tol = parseFloat(document.getElementById('tol_' + f.element)?.value || document.getElementById('toleranceSlider')?.value || 2);
           const min = parseFloat(a[f.element + '_min']);
           const max = parseFloat(a[f.element + '_max']);
           if (isNaN(min) && isNaN(max)) return false;
           const lo = isNaN(min) ? 0 : min;
           const hi = isNaN(max) ? (isNaN(min) ? 100 : min) : max;
-          return f.value >= lo && f.value <= hi;
+          return (f.value + tol) >= lo && (f.value - tol) <= hi;
         });
       });
     }
@@ -174,6 +185,15 @@ function doSearch() {
     });
     return `<div class="alloy-card"><div class="alloy-name">${a.name}</div><div class="alloy-elements">${elements.join('')}</div></div>`;
   }).join('');
+}
+
+function syncTolerance(val) {
+  MAIN_ELEMENTS.forEach(e => {
+    const slider = document.getElementById('tol_' + e);
+    const label = document.getElementById('tolv_' + e);
+    if (slider) { slider.value = val; }
+    if (label) { label.textContent = '±' + val; }
+  });
 }
 
 function unlock() {
